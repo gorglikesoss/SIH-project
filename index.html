@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plant Disease Analyzer — Demo UI</title>
+
+  <!-- Google font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome for leaf icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root{
+      --bg:#e6f5ea; /* light green background */
+      --card:#ffffff;
+      --muted:#4a6b52;
+      --accent:#16a34a; /* green */
+      --danger:#fb923c; /* orange */
+      --glass: rgba(255,255,255,0.7);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--bg);color:#1e293b}
+    .container{max-width:980px;margin:48px auto;padding:28px}
+
+    header{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+    .logo{
+      width:56px;height:56px;
+      border-radius:12px;
+      background:linear-gradient(135deg,#34d399,#059669);
+      display:flex;align-items:center;justify-content:center;
+      font-size:28px;color:#fff;
+      box-shadow:0 6px 24px rgba(3,7,18,0.2)
+    }
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:20px}
+    .card{
+      background:var(--card);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.08);
+      border:1px solid rgba(0,0,0,0.05)
+    }
+
+    /* uploader */
+    .uploader{border:2px dashed rgba(0,0,0,0.1);padding:28px;border-radius:12px;text-align:center;transition:all .18s}
+    .uploader.dragover{background:rgba(22,163,74,0.06);border-color:var(--accent)}
+    .uploader input{display:none}
+    .uploader .hint{color:var(--muted);font-size:13px;margin-top:8px}
+    .btn{display:inline-block;padding:10px 16px;border-radius:10px;background:linear-gradient(90deg,#22c55e,#16a34a);color:white;font-weight:600;border:none;cursor:pointer}
+
+    /* preview */
+    .preview{margin-top:12px;border-radius:10px;overflow:hidden;background:var(--glass);display:flex;align-items:center;justify-content:center;height:260px}
+    .preview img{max-width:100%;max-height:100%;object-fit:contain}
+
+    /* right column */
+    .sidebar h3{margin:0 0 8px 0}
+    .analyze{margin-top:12px}
+    .analyze .primary{width:100%;padding:12px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#15803d);color:white;font-weight:700;border:none;cursor:pointer}
+    .analyze .secondary{width:100%;padding:10px;margin-top:8px;border-radius:10px;background:transparent;border:1px solid rgba(0,0,0,0.1);color:var(--muted);cursor:pointer}
+
+    /* result card */
+    .result{margin-top:16px;padding:14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0}
+    .result .label{font-weight:800;font-size:18px;color:#065f46}
+    .result .conf{margin-top:6px;color:var(--muted)}
+    .prob{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px dashed rgba(0,0,0,0.08)}
+
+    /* spinner */
+    .spinner{width:44px;height:44px;border-radius:50%;border:4px solid rgba(0,0,0,0.1);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:8px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* responsive */
+    @media (max-width:880px){.grid{grid-template-columns:1fr;}.sidebar{order:2}.preview{height:220px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo"><i class="fas fa-leaf"></i></div>
+      <div>
+        <h1>Plant Disease Analyzer</h1>
+        <p class="lead">Upload a leaf photo — analyze in real time !!</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <div id="uploader" class="uploader" tabindex="0">
+          <strong>Drop leaf image here</strong>
+          <div class="hint">or</div>
+          <label style="margin-top:10px;display:inline-block">
+            <button class="btn" id="selectBtn">Choose an image</button>
+            <input id="fileInput" type="file" accept="image/*" />
+          </label>
+
+          <div class="preview" id="preview">
+            <div style="text-align:center;color:var(--muted)">No image selected — try a clear close-up of the leaf patch.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+          <div style="flex:1">
+            <label style="display:block;font-size:12px;color:var(--muted)">Notes</label>
+            <input id="notes" placeholder="Optional: where/plant type" style="width:100%;padding:8px;border-radius:8px;background:#f9fafb;border:1px solid rgba(0,0,0,0.1);color:inherit" />
+          </div>
+          <button id="clearBtn" class="analyze secondary" style="padding:8px 12px;border-radius:10px">Clear</button>
+        </div>
+      </div>
+
+      <aside class="card sidebar">
+        <h3>Analyze</h3>
+        <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Single-click analysis. Model runs on server or in-browser (TF.js).</p>
+
+        <div class="analyze">
+          <button id="analyzeBtn" class="primary">Analyze Image</button>
+          <button id="explainBtn" class="secondary">Show Explanation (Grad-CAM)</button>
+        </div>
+
+        <div id="status" style="margin-top:12px;color:var(--muted);font-size:13px">Ready to analyze</div>
+
+        <div id="resultCard" class="result" style="display:none">
+          <div class="label" id="resLabel">Late Blight</div>
+          <div class="conf" id="resConf">Confidence: 92.3%</div>
+
+          <div style="margin-top:10px;font-size:13px;color:var(--muted)">Top probabilities</div>
+          <div id="probs" style="margin-top:6px"></div>
+
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button id="saveBtn" class="btn" style="background:linear-gradient(90deg,#06b6d4,#2563eb);">Save result</button>
+            <button id="adviceBtn" class="secondary">Treatment advice</button>
+          </div>
+        </div>
+
+        <div id="loading" style="display:none;margin-top:12px;text-align:center">
+          <div class="spinner"></div>
+          <div style="color:var(--muted);font-size:13px;margin-top:6px">Analyzing image — this may take a few seconds</div>
+        </div>
+      </aside>
+    </div>
+
+    <footer> 🌿  <code>analyzeImage()</code> JS function.</footer>
+  </div>
+
+  <script>
+    const uploader = document.getElementById('uploader');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const selectBtn = document.getElementById('selectBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('status');
+    const loading = document.getElementById('loading');
+    const resultCard = document.getElementById('resultCard');
+    const resLabel = document.getElementById('resLabel');
+    const resConf = document.getElementById('resConf');
+    const probs = document.getElementById('probs');
+
+    let currentFile = null;
+
+    // drag/drop
+    uploader.addEventListener('dragover', e => { e.preventDefault(); uploader.classList.add('dragover'); });
+    uploader.addEventListener('dragleave', e => { uploader.classList.remove('dragover'); });
+    uploader.addEventListener('drop', e => {
+      e.preventDefault(); uploader.classList.remove('dragover');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    selectBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => { const f = e.target.files[0]; if (f) handleFile(f); });
+
+    clearBtn.addEventListener('click', () => {
+      currentFile = null; fileInput.value = '';
+      preview.innerHTML = '<div style="text-align:center;color:var(--muted)">No image selected — try a clear close-up of the leaf patch.</div>';
+      resultCard.style.display='none'; status.textContent='Ready to analyze';
+    });
+
+    function handleFile(file){
+      if (!file.type.startsWith('image/')) { alert('Please upload an image file'); return; }
+      currentFile = file;
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.onload = () => URL.revokeObjectURL(img.src);
+      preview.innerHTML = '';
+      preview.appendChild(img);
+      resultCard.style.display='none';
+      status.textContent = 'Image loaded — ready';
+    }
+
+    analyzeBtn.addEventListener('click', async () => {
+      if (!currentFile) { alert('Please select an image first'); return; }
+      loading.style.display='block';
+      status.textContent = 'Analyzing...';
+      resultCard.style.display='none';
+
+      try{
+        await fakeUploadAndAnalyze(currentFile);
+      } catch(err){
+        console.error(err);
+        alert('Analysis failed — see console.');
+      } finally{
+        loading.style.display='none';
+      }
+    });
+
+    async function fakeUploadAndAnalyze(file){
+      await new Promise(r => setTimeout(r, 1400));
+      const fake = [
+        {label:'Late Blight', prob:0.923},
+        {label:'Early Blight', prob:0.042},
+        {label:'Healthy', prob:0.025},
+        {label:'Rust', prob:0.010}
+      ];
+      showResults(fake);
+    }
+
+    function showResults(list){
+      if (!list || list.length===0) return;
+      const top = list[0];
+      resLabel.textContent = top.label;
+      resConf.textContent = 'Confidence: ' + (top.prob*100).toFixed(1) + '%';
+
+      probs.innerHTML = '';
+      for (const item of list){
+        const row = document.createElement('div');
+        row.className = 'prob';
+        const left = document.createElement('div'); left.textContent = item.label;
+        const right = document.createElement('div'); right.textContent = (item.prob*100).toFixed(1) + '%';
+        row.appendChild(left); row.appendChild(right);
+        probs.appendChild(row);
+      }
+      resultCard.style.display = 'block';
+      status.textContent = 'Analysis complete';
+    }
+  </script>
+</body>
+</html>
+
