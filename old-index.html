@@ -37,7 +37,7 @@
     h1{margin:0;font-size:20px}
     p.lead{margin:0;color:var(--muted);font-size:13px}
 
-    .grid{display:grid;grid-template-columns:1fr 450px;gap:20px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:20px}
     .card{
       background:var(--card);
       border-radius:14px;
@@ -57,24 +57,8 @@
     .preview{margin-top:12px;border-radius:10px;overflow:hidden;background:var(--glass);display:flex;align-items:center;justify-content:center;height:260px}
     .preview img{max-width:100%;max-height:100%;object-fit:contain}
 
-    /* sidebar */
+    /* right column */
     .sidebar h3{margin:0 0 8px 0}
-
-    .two-box-grid {
-      display: grid;
-      grid-template-columns: 2fr 2fr; /* two equal columns */
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .two-box-grid .box {
-      background: var(--card);
-      border: 1px solid rgba(0,0,0,0.05);
-      border-radius: 10px;
-      padding: 12px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-    }
-
     .analyze{margin-top:12px}
     .analyze .primary{width:100%;padding:12px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#15803d);color:white;font-weight:700;border:none;cursor:pointer}
     .analyze .secondary{width:100%;padding:10px;margin-top:8px;border-radius:10px;background:transparent;border:1px solid rgba(0,0,0,0.1);color:var(--muted);cursor:pointer}
@@ -85,9 +69,6 @@
     .result .conf{margin-top:6px;color:var(--muted)}
     .prob{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px dashed rgba(0,0,0,0.08)}
 
-    /* advice box */
-    .advice {margin-top:10px;font-size:13px;color:var(--muted);line-height:1.5}
-
     /* spinner */
     .spinner{width:44px;height:44px;border-radius:50%;border:4px solid rgba(0,0,0,0.1);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:8px auto}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -95,12 +76,7 @@
     footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
 
     /* responsive */
-    @media (max-width:880px){
-      .grid{grid-template-columns:1fr;}
-      .sidebar{order:2}
-      .preview{height:220px}
-      .two-box-grid{grid-template-columns:1fr;} /* stack boxes on mobile */
-    }
+    @media (max-width:880px){.grid{grid-template-columns:1fr;}.sidebar{order:2}.preview{height:220px}}
   </style>
 </head>
 <body>
@@ -109,12 +85,11 @@
       <div class="logo"><i class="fas fa-leaf"></i></div>
       <div>
         <h1>Plant Disease Analyzer</h1>
-        <p class="lead">Upload a leaf photo — analyze in real time !!.</p>
+        <p class="lead">Upload a leaf photo — analyze in real time !!</p>
       </div>
     </header>
 
     <div class="grid">
-      <!-- left side: uploader -->
       <div class="card">
         <div id="uploader" class="uploader" tabindex="0">
           <strong>Drop leaf image here</strong>
@@ -138,26 +113,13 @@
         </div>
       </div>
 
-      <!-- right side: sidebar -->
       <aside class="card sidebar">
-        <div class="two-box-grid">
-          <!-- Analyze box -->
-          <div class="box">
-            <h3>Analyze</h3>
-            <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Single-click analysis. Model runs on server or in-browser (TF.js).</p>
-            <div class="analyze">
-              <button id="analyzeBtn" class="primary">Analyze Image</button>
-              <button id="explainBtn" class="secondary">Show Explanation</button>
-            </div>
-          </div>
+        <h3>Analyze</h3>
+        <p style="color:var(--muted);font-size:13px;margin:6px 0 0">Single-click analysis. Model runs on server or in-browser (TF.js).</p>
 
-          <!-- Treatment Advice box (direct text) -->
-          <div class="box">
-            <h3>Treatment Advice</h3>
-            <div class="advice" id="adviceText">
-              Upload and analyze a leaf image to get tailored advice here.
-            </div>
-          </div>
+        <div class="analyze">
+          <button id="analyzeBtn" class="primary">Analyze Image</button>
+          <button id="explainBtn" class="secondary">Show Explanation (Grad-CAM)</button>
         </div>
 
         <div id="status" style="margin-top:12px;color:var(--muted);font-size:13px">Ready to analyze</div>
@@ -168,6 +130,11 @@
 
           <div style="margin-top:10px;font-size:13px;color:var(--muted)">Top probabilities</div>
           <div id="probs" style="margin-top:6px"></div>
+
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button id="saveBtn" class="btn" style="background:linear-gradient(90deg,#06b6d4,#2563eb);">Save result</button>
+            <button id="adviceBtn" class="secondary">Treatment advice</button>
+          </div>
         </div>
 
         <div id="loading" style="display:none;margin-top:12px;text-align:center">
@@ -175,9 +142,12 @@
           <div style="color:var(--muted);font-size:13px;margin-top:6px">Analyzing image — this may take a few seconds</div>
         </div>
       </aside>
+      <div id="treat" class="card sidebar" style="display: none;">
+        
+      </div>
     </div>
 
-    <footer> 🌿 <code>analyzeImage()</code> JS function.</footer>
+    <footer> 🌿  <code>analyzeImage()</code> JS function.</footer>
   </div>
 
   <script>
@@ -193,7 +163,7 @@
     const resLabel = document.getElementById('resLabel');
     const resConf = document.getElementById('resConf');
     const probs = document.getElementById('probs');
-    const adviceText = document.getElementById('adviceText');
+    const treatm = document.getElementById('treat');
 
     let currentFile = null;
 
@@ -213,7 +183,6 @@
       currentFile = null; fileInput.value = '';
       preview.innerHTML = '<div style="text-align:center;color:var(--muted)">No image selected — try a clear close-up of the leaf patch.</div>';
       resultCard.style.display='none'; status.textContent='Ready to analyze';
-      adviceText.textContent = 'Upload and analyze a leaf image to get tailored advice here.';
     });
 
     function handleFile(file){
@@ -236,6 +205,7 @@
 
       try{
         await fakeUploadAndAnalyze(currentFile);
+        await showTreatment();
       } catch(err){
         console.error(err);
         alert('Analysis failed — see console.');
@@ -252,8 +222,14 @@
         {label:'Healthy', prob:0.025},
         {label:'Rust', prob:0.010}
       ];
-      
       showResults(fake);
+    }
+
+    async function showTreatment() {
+      console.log("Test");
+      treatm.innerHTML = '<h3> Treatment Options </h3>';
+      treatm.style.display = "inline";
+
     }
 
     function showResults(list){
@@ -261,35 +237,6 @@
       const top = list[0];
       resLabel.textContent = top.label;
       resConf.textContent = 'Confidence: ' + (top.prob*100).toFixed(1) + '%';
-
-      // update advice text based on disease
-      if (top.label === 'Late Blight'){
-        adviceText.innerHTML = `
-          <strong>Advice:</strong><br>
-          • Remove infected leaves immediately.<br>
-          • Apply copper-based fungicide weekly.<br>
-          • Ensure proper air circulation and avoid overhead watering.
-        `;
-      } else if (top.label === 'Early Blight'){
-        adviceText.innerHTML = `
-          <strong>Advice:</strong><br>
-          • Rotate crops regularly.<br>
-          • Use mulch to prevent soil splash.<br>
-          • Apply preventive fungicides like chlorothalonil.
-        `;
-      } else if (top.label === 'Rust'){
-        adviceText.innerHTML = `
-          <strong>Advice:</strong><br>
-          • Prune affected leaves.<br>
-          • Spray sulfur or neem oil weekly.<br>
-          • Water at soil level, not leaves.
-        `;
-      } else {
-        adviceText.innerHTML = `
-          <strong>Advice:</strong><br>
-          Your plant looks healthy! Maintain proper watering and fertilization.
-        `;
-      }
 
       probs.innerHTML = '';
       for (const item of list){
@@ -306,3 +253,4 @@
   </script>
 </body>
 </html>
+
